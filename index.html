@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q-DINO · aprende a saltar y agacharse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fafafa; --paper:#ffffff; --ink:#535353; --ink-soft:#7a7a7a;
+    --line:#e2e2e2; --line-2:#d2d2d2; --text:#3c4043; --muted:#86898d;
+    --jump:#4f8a5b; --duck:#3f72b0; --jump-soft:#e3efe5; --danger:#c5524b;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:'JetBrains Mono',ui-monospace,monospace;}
+  body{min-height:100vh;padding:30px 18px 60px;
+    background-image:radial-gradient(circle at 12% 0%, #f2f4f3 0%, transparent 38%),linear-gradient(0deg,#f4f4f4,#fafafa);}
+  .wrap{max-width:920px;margin:0 auto;}
+  header{margin-bottom:18px;}
+  .tag{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--muted);border:1px solid var(--line-2);padding:5px 12px;border-radius:999px;margin-bottom:14px;}
+  .tag b{color:var(--jump);}
+  h1{font-family:'Pixelify Sans',monospace;font-weight:700;font-size:clamp(30px,6vw,52px);line-height:1;
+    margin:0 0 12px;color:var(--ink);letter-spacing:1px;}
+  h1 .em{color:var(--jump);}
+  .sub{color:var(--muted);font-size:14px;max-width:680px;line-height:1.65;}
+  .sub b{color:var(--text);} .sub .j{color:var(--jump);font-weight:700;} .sub .d{color:var(--duck);font-weight:700;}
+
+  .hud{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:22px 0 14px;}
+  .stat{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:11px 13px;}
+  .stat .k{font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);}
+  .stat .v{font-family:'Pixelify Sans',monospace;font-weight:600;font-size:22px;margin-top:4px;color:var(--ink);}
+  .stat.acc .v{color:var(--jump);}
+
+  .stage{position:relative;border:1px solid var(--line-2);border-radius:14px;background:var(--paper);
+    overflow:hidden;box-shadow:0 18px 40px -30px #0006;}
+  #game{display:block;width:100%;height:auto;image-rendering:pixelated;background:var(--paper);}
+
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0 4px;}
+  button{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#fff;background:var(--ink);
+    border:none;border-radius:10px;padding:11px 17px;cursor:pointer;transition:transform .07s,filter .15s;}
+  button:hover{filter:brightness(1.12);} button:active{transform:translateY(2px);}
+  button.go{background:var(--jump);}
+  button.ghost{background:var(--paper);color:var(--ink);border:1px solid var(--line-2);}
+  .speeds{display:flex;gap:6px;margin-left:auto;align-items:center;}
+  .speeds .lbl{font-size:11px;color:var(--muted);margin-right:4px;}
+  .spd{padding:9px 13px;font-size:12px;background:var(--paper);color:var(--muted);border:1px solid var(--line-2);}
+  .spd.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .lower{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;}
+  @media(max-width:740px){.lower{grid-template-columns:1fr;}.hud{grid-template-columns:repeat(2,1fr);}}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:15px 17px;}
+  .card h3{margin:0 0 6px;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--jump);}
+  .card p{margin:0 0 11px;font-size:12.5px;color:var(--muted);line-height:1.6;}
+  canvas.mini{width:100%;height:auto;display:block;background:#fbfbfb;border-radius:8px;border:1px solid var(--line);}
+  .legend{display:flex;gap:14px;margin-top:9px;font-size:11px;color:var(--muted);flex-wrap:wrap;}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle;border:1px solid #0001;}
+
+  details{margin-top:20px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:4px 18px;}
+  summary{cursor:pointer;font-weight:700;color:var(--ink);padding:12px 0;font-size:13px;list-style:none;}
+  summary::before{content:"▸ ";color:var(--jump);} details[open] summary::before{content:"▾ ";}
+  details .body{font-size:13px;color:var(--muted);line-height:1.75;padding-bottom:14px;}
+  details code{background:#f1f3f1;color:var(--jump);padding:1px 6px;border-radius:4px;font-size:12px;}
+  details b{color:var(--text);}
+  .foot{margin-top:26px;text-align:center;color:#b2b5b9;font-size:11px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tag">🦖 demo · <b>Q-Learning tabular</b> · 3 acciones</span>
+    <h1>Q-<span class="em">DINO</span></h1>
+    <p class="sub">El dino de Chrome aprende solo a esquivar dos obstáculos: salta
+      los <span class="j">cactus</span> 🌵 y se agacha bajo los
+      <span class="d">pájaros</span> 🦅. No mira la pantalla: solo conoce
+      <b>qué tipo de obstáculo viene y a cuántos cuadros está</b> (su estado), y
+      elige entre <b>correr, saltar o agacharse</b>. Choca → castigo; sobrevive → premio.</p>
+  </header>
+
+  <div class="hud">
+    <div class="stat"><div class="k">Episodio</div><div class="v" id="hEp">0</div></div>
+    <div class="stat"><div class="k">Puntaje</div><div class="v" id="hScore">0</div></div>
+    <div class="stat"><div class="k">Récord</div><div class="v" id="hBest">0</div></div>
+    <div class="stat acc"><div class="k">Exploración ε</div><div class="v" id="hEps">0.60</div></div>
+    <div class="stat"><div class="k">Estados</div><div class="v" id="hStates">0</div></div>
+  </div>
+
+  <div class="stage"><canvas id="game" width="760" height="250"></canvas></div>
+
+  <div class="controls">
+    <button id="btnRun" class="go">▶ Entrenar</button>
+    <button id="btnReset" class="ghost">⟳ Reiniciar cerebro</button>
+    <div class="speeds">
+      <span class="lbl">velocidad</span>
+      <button class="spd" data-spd="1">1×</button>
+      <button class="spd on" data-spd="6">6×</button>
+      <button class="spd" data-spd="20">20×</button>
+      <button class="spd" data-spd="200">turbo</button>
+    </div>
+  </div>
+
+  <div class="lower">
+    <div class="card">
+      <h3>El cerebro · política aprendida</h3>
+      <p>Dos filas: <b>cactus</b> y <b>pájaro</b>. Para cada distancia (de cerca a
+        lejos), el color muestra qué aprendió a hacer. Deberían aparecer dos
+        franjas: cactus cerca → <span style="color:var(--jump)">saltar</span>,
+        pájaro cerca → <span style="color:var(--duck)">agacharse</span>.</p>
+      <canvas id="brain" class="mini" width="360" height="140"></canvas>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--jump)"></i>saltar</span>
+        <span><i class="dot" style="background:var(--duck)"></i>agacharse</span>
+        <span><i class="dot" style="background:#9aa0a6"></i>correr</span>
+        <span><i class="dot" style="background:#edeeef"></i>sin explorar</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Puntaje por episodio · convergencia</h3>
+      <p>La misma curva de la Clase VIII: si aprende, la línea <b>sube</b>. Vemos
+        cada episodio y el promedio móvil.</p>
+      <canvas id="chart" class="mini" width="360" height="140"></canvas>
+      <div class="legend">
+        <span><i class="dot" style="background:#c8cbcf"></i>cada episodio</span>
+        <span><i class="dot" style="background:var(--jump)"></i>promedio móvil</span>
+      </div>
+    </div>
+  </div>
+
+  <details>
+    <summary>¿Cómo funciona por dentro?</summary>
+    <div class="body">
+      <p><b>Estado (s):</b> el <i>tipo de obstáculo</i> (cactus de suelo o pájaro
+      alto) combinado con el <i>tiempo hasta el choque</i> (distancia ÷ velocidad,
+      en ~16 casilleros). Eso da unos 33 estados: chiquito y manejable.</p>
+      <p><b>Acciones (a):</b> <code>correr</code>, <code>saltar</code> o
+      <code>agacharse</code>. Solo decide cuando está en el piso.</p>
+      <p><b>Recompensa (r):</b> <code>+1</code> por cuadro vivo, <code>−100</code> si
+      choca. El cactus se libra saltando; el pájaro, agachándose (saltar te mete
+      justo en él).</p>
+      <p><b>Actualización:</b> la fórmula de la filmina, ahora con 3 acciones:
+      <code>Q(s,a) ← Q(s,a) + α·[ r + γ·max Q(s',·) − Q(s,a) ]</code>, con ε-greedy.</p>
+      <p><b>Puente a Deep RL:</b> agregamos un obstáculo y una acción y la tabla
+      apenas creció. Pero con los píxeles reales explotaría → ahí entra una red
+      neuronal (DQN). Mismo concepto, otra herramienta.</p>
+    </div>
+  </details>
+
+  <p class="foot">Q-DINO · demo educativa de Q-Learning · Inteligencia Artificial · UTN FRVM</p>
+</div>
+
+<script>
+"use strict";
+// ====================================================================
+//  Q-DINO — cactus (saltar) + pájaros (agacharse) con Q-Learning tabular
+// ====================================================================
+const cv=document.getElementById("game"), ctx=cv.getContext("2d");
+const W=cv.width, H=cv.height, GROUND_Y=H-42;
+
+// ---------- Física ----------
+const DINO_X=64, DINO_W=44, DINO_H=44, H_DUCK=24;
+const GRAVITY=0.72, JUMP_V=-12.0;
+let speed=4.6; const SPEED_MAX=8.6;
+
+// ---------- Hiperparámetros ----------
+const ALPHA=0.15, GAMMA=0.95;
+let EPS=0.60; const EPS_MIN=0.01, EPS_DECAY=0.97;
+
+// ---------- Discretización ----------
+const N_DIST=16, TTC_MAX=52, N_ACTIONS=3;          // 0 correr, 1 saltar, 2 agachar
+const NO_OBS=2*N_DIST, N_STATES=2*N_DIST+1;        // tipo(0 cactus,1 pájaro)×dist + "nada"
+let Q=makeQ();
+function makeQ(){ const q=[]; for(let i=0;i<N_STATES;i++) q.push([0,0,0]); return q; }
+const visited=new Array(N_STATES).fill(false);
+function bestAction(s){ let bi=0; for(let a=1;a<3;a++) if(Q[s][a]>Q[s][bi]) bi=a; return bi; }
+function conf(s){ const m=Math.max(Q[s][0],Q[s][1],Q[s][2]), n=Math.min(Q[s][0],Q[s][1],Q[s][2]); return Math.min(1,(m-n)/40); }
+
+// ---------- Mundo ----------
+let dino={ y:GROUND_Y-DINO_H, vy:0, grounded:true, duck:false };
+let obstacles=[], clouds=[];
+let score=0, episode=0, best=0, frame=0;
+let running=false, simSpeed=6, dead=0;
+let pendS=null, pendA=0, accR=0;
+const history=[];
+
+// ---------- Obstáculos / nubes ----------
+function spawnObstacle(){
+  if(Math.random()<0.4){                            // pájaro alto
+    obstacles.push({ kind:1, x:W+12, w:48, h:52, y:128, passed:false });
+  } else {                                          // cactus de suelo
+    const big=Math.random()<0.45;
+    const h=big?34+(Math.random()*14|0):22+(Math.random()*10|0);
+    const w=big?26+(Math.random()*16|0):14+(Math.random()*8|0);
+    obstacles.push({ kind:0, x:W+12, w, h, y:GROUND_Y-h, passed:false });
+  }
+}
+function ensureObstacles(){
+  const airtime=(2*(-JUMP_V))/GRAVITY, minGap=speed*(airtime+24);
+  const last=obstacles.length?obstacles[obstacles.length-1].x:-Infinity;
+  if(W-last>minGap+Math.random()*speed*24) spawnObstacle();
+  if(obstacles.length===0) spawnObstacle();
+}
+function spawnCloud(){ clouds.push({ x:W+20, y:18+Math.random()*60 }); }
+
+// ---------- Estado discretizado ----------
+function currentState(){
+  let n=null;
+  for(const o of obstacles){ if(o.x+o.w>=DINO_X){ n=o; break; } }
+  if(!n) return NO_OBS;
+  const ttc=(n.x-(DINO_X+DINO_W))/speed;
+  if(ttc>=TTC_MAX) return NO_OBS;
+  let b=Math.floor(ttc/(TTC_MAX/N_DIST));
+  b=Math.max(0,Math.min(N_DIST-1,b));
+  return n.kind*N_DIST + b;
+}
+function chooseAction(s){
+  if(Math.random()<EPS) return Math.random()*3|0;
+  return bestAction(s);
+}
+function learn(s,a,r,s2,terminal){
+  const target=terminal?r:(r+GAMMA*Math.max(Q[s2][0],Q[s2][1],Q[s2][2]));
+  Q[s][a]+=ALPHA*(target-Q[s][a]);
+  visited[s]=true;
+}
+
+// ---------- Hitbox según postura ----------
+function dinoBox(){
+  if(!dino.grounded) return {x:DINO_X+8, w:DINO_W-16, y:dino.y+5, h:DINO_H-8};
+  if(dino.duck)       return {x:DINO_X+6, w:DINO_W-8,  y:GROUND_Y-H_DUCK, h:H_DUCK-2};
+  return {x:DINO_X+8, w:DINO_W-16, y:dino.y+5, h:DINO_H-8};
+}
+
+// ---------- Un paso de simulación ----------
+function simStep(){
+  frame++;
+  speed=Math.min(SPEED_MAX, 4.6+score*0.009);
+  ensureObstacles();
+  for(const o of obstacles) o.x-=speed;
+  for(const o of obstacles){ if(!o.passed && o.x+o.w<DINO_X){ o.passed=true; score++; } }
+  obstacles=obstacles.filter(o=>o.x+o.w>-30);
+
+  if(Math.random()<0.012 || clouds.length===0) spawnCloud();
+  for(const c of clouds) c.x-=speed*0.35;
+  clouds=clouds.filter(c=>c.x>-60);
+
+  if(dino.grounded){
+    const s=currentState();
+    if(pendS!==null) learn(pendS,pendA,accR,s,false);
+    const a=chooseAction(s);
+    pendS=s; pendA=a; accR=0;
+    dino.duck=(a===2);
+    if(a===1){ dino.vy=JUMP_V; dino.grounded=false; dino.duck=false; }
+  }
+  dino.vy+=GRAVITY; dino.y+=dino.vy;
+  if(dino.y>=GROUND_Y-DINO_H){ dino.y=GROUND_Y-DINO_H; dino.vy=0; dino.grounded=true; }
+  accR+=1;
+
+  const hb=dinoBox();
+  let crash=false;
+  for(const o of obstacles){
+    let ox=o.x, ow=o.w, oy, oh;
+    if(o.kind===1){ oy=o.y+4; oh=o.h-8; } else { oy=GROUND_Y-o.h; oh=o.h; }
+    if(hb.x+hb.w>ox && hb.x<ox+ow && hb.y+hb.h>oy && hb.y<oy+oh){ crash=true; break; }
+  }
+  if(crash){
+    if(pendS!==null) learn(pendS,pendA,accR-100,0,true);
+    endEpisode();
+  }
+}
+function endEpisode(){
+  best=Math.max(best,score); history.push(score);
+  if(history.length>500) history.shift();
+  episode++; EPS=Math.max(EPS_MIN,EPS*EPS_DECAY);
+  score=0; frame=0; speed=4.6; obstacles=[]; spawnObstacle();
+  dino={ y:GROUND_Y-DINO_H, vy:0, grounded:true, duck:false };
+  pendS=null; pendA=0; accR=0; dead=8;
+}
+
+// ====================================================================
+//  DIBUJO — estilo Chrome dino (gris sobre blanco)
+// ====================================================================
+const INK="#535353", INK2="#9aa0a6";
+function rect(c,r,w,h,x0,y0,sc){ ctx.fillRect(x0+c*sc, y0+r*sc, w*sc, h*sc); }
+
+function drawDino(x0,y0,sc,pose){
+  ctx.fillStyle=INK;
+  if(pose==="duck"){
+    // agachado: cuerpo bajo y alargado
+    rect(0,4,5,3,x0,y0,sc); rect(4,5,11,4,x0,y0,sc);
+    rect(14,3,8,5,x0,y0,sc); rect(21,5,2,2,x0,y0,sc);
+    rect(5,9,3,2,x0,y0,sc);  rect(11,9,3,2,x0,y0,sc);
+    ctx.fillStyle="#fff"; rect(18,4,2,2,x0,y0,sc);
+    ctx.fillStyle=INK;     rect(19,4,1,1,x0,y0,sc);
+    return;
+  }
+  // de pie / saltando / corriendo
+  rect(0,5,4,3,x0,y0,sc); rect(0,3,3,2,x0,y0,sc);     // cola
+  rect(4,5,4,3,x0,y0,sc); rect(6,7,9,5,x0,y0,sc);     // cuerpo
+  rect(12,1,9,6,x0,y0,sc); rect(20,3,2,3,x0,y0,sc);   // cabeza+hocico
+  rect(13,9,3,2,x0,y0,sc);                            // brazo
+  rect(7,11,8,2,x0,y0,sc);                            // cadera
+  if(pose==="run1"){ rect(8,13,3,6,x0,y0,sc); rect(7,18,5,1,x0,y0,sc); rect(12,13,3,4,x0,y0,sc); rect(12,16,5,1,x0,y0,sc); }
+  else if(pose==="run2"){ rect(8,13,3,4,x0,y0,sc); rect(8,16,5,1,x0,y0,sc); rect(12,13,3,6,x0,y0,sc); rect(12,18,5,1,x0,y0,sc); }
+  else { rect(8,13,3,6,x0,y0,sc); rect(7,18,5,1,x0,y0,sc); rect(12,13,3,6,x0,y0,sc); rect(12,18,5,1,x0,y0,sc); }
+  ctx.fillStyle="#fff"; rect(17,2,3,2,x0,y0,sc);
+  ctx.fillStyle=INK;
+  if(pose==="dead"){ rect(18,2,1,1,x0,y0,sc); rect(19,3,1,1,x0,y0,sc); } else { rect(18,2,1,1,x0,y0,sc); }
+  ctx.fillStyle="#fff"; rect(18,5,4,1,x0,y0,sc); ctx.fillStyle=INK;
+}
+
+function drawCactus(o){
+  ctx.fillStyle=INK;
+  const x=o.x, baseY=GROUND_Y, top=baseY-o.h, tw=Math.max(8,Math.round(o.w*0.4));
+  ctx.fillRect(x+(o.w-tw)/2, top, tw, o.h);
+  const armH=Math.round(o.h*0.4);
+  ctx.fillRect(x, baseY-armH-Math.round(o.h*0.18), Math.round(o.w*0.28), Math.round(o.h*0.18));
+  ctx.fillRect(x, baseY-armH-Math.round(o.h*0.18), 6, armH);
+  ctx.fillRect(x+o.w-Math.round(o.w*0.28), baseY-armH-Math.round(o.h*0.30), Math.round(o.w*0.28), Math.round(o.h*0.18));
+  ctx.fillRect(x+o.w-6, baseY-armH-Math.round(o.h*0.30), 6, armH);
+}
+
+function drawBird(o){
+  ctx.fillStyle=INK;
+  const x=o.x, y=o.y, h=o.h, mid=Math.round(h*0.44);
+  // mira hacia la izquierda (hacia donde vuela): pico, cabeza, cuerpo atrás
+  ctx.fillRect(x, y+mid, 7, 5);                                  // pico
+  ctx.fillRect(x+6, y+Math.round(h*0.34), 13, 11);              // cabeza
+  ctx.fillRect(x+17, y+Math.round(h*0.42), 24, 10);            // cuerpo
+  const up=(frame%22<11);                                       // ala que aletea
+  if(up) ctx.fillRect(x+20, y, 17, Math.round(h*0.5));
+  else   ctx.fillRect(x+20, y+Math.round(h*0.5), 17, Math.round(h*0.5));
+  ctx.fillStyle="#fff"; ctx.fillRect(x+9, y+Math.round(h*0.40), 3, 3);  // ojo
+  ctx.fillStyle=INK;
+}
+
+function drawCloud(c){
+  ctx.fillStyle="#e6e7e9";
+  ctx.fillRect(c.x,c.y,28,8); ctx.fillRect(c.x+6,c.y-5,16,6); ctx.fillRect(c.x+4,c.y+8,22,4);
+}
+function pad(n,len){ return String(n).padStart(len,"0"); }
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  for(const c of clouds) drawCloud(c);
+
+  ctx.fillStyle=INK; ctx.fillRect(0,GROUND_Y,W,2);
+  ctx.fillStyle=INK2;
+  for(let x=Math.floor((-frame*speed)%40); x<W; x+=40){ ctx.fillRect(x,GROUND_Y+6,11,2); }
+  for(let x=Math.floor((-frame*speed*1.3)%97)+20; x<W; x+=97){ ctx.fillRect(x,GROUND_Y+11,3,2); }
+
+  for(const o of obstacles){ if(o.kind===1) drawBird(o); else drawCactus(o); }
+
+  let pose;
+  if(dead>0){ pose="dead"; dead--; }
+  else if(!dino.grounded) pose="jump";
+  else if(dino.duck) pose="duck";
+  else pose=(frame%12<6)?"run1":"run2";
+  if(pose==="duck") drawDino(DINO_X, GROUND_Y-H_DUCK-2, 2, "duck");
+  else drawDino(DINO_X, dino.y, 2, pose);
+
+  ctx.fillStyle=INK2; ctx.font="16px 'Pixelify Sans', monospace"; ctx.textAlign="right";
+  ctx.fillText("HI "+pad(best,5)+"   "+pad(score,5), W-16, 26); ctx.textAlign="left";
+
+  ctx.fillStyle="#b6b9bd"; ctx.font="11px 'JetBrains Mono', monospace";
+  const s=currentState();
+  let lbl;
+  if(s===NO_OBS) lbl="estado: sin obstáculo cerca";
+  else { const tipo=s<N_DIST?"cactus":"pájaro"; const b=s%N_DIST; const a=bestAction(s);
+    lbl="estado: "+tipo+" a "+b+" cuadros → "+["correr","SALTAR","AGACHARSE"][a]; }
+  ctx.fillText(lbl, 16, H-12);
+}
+
+// ---------- Cerebro (dos filas: cactus / pájaro) ----------
+const bcv=document.getElementById("brain"), bx=bcv.getContext("2d");
+function drawBrain(){
+  const w=bcv.width, h=bcv.height; bx.clearRect(0,0,w,h);
+  const labels=["CACTUS","PÁJARO"], rowH=44, gap=10, top=10, x0=58, bw=(w-x0-4)/N_DIST;
+  for(let r=0;r<2;r++){
+    const y0=top+r*(rowH+gap);
+    bx.fillStyle="#535353"; bx.font="bold 10px 'JetBrains Mono',monospace"; bx.textAlign="left";
+    bx.fillText(labels[r], 2, y0+rowH/2+4);
+    for(let b=0;b<N_DIST;b++){
+      const s=r*N_DIST+b;
+      let col;
+      if(!visited[s]) col="#edeeef";
+      else { const a=bestAction(s); col = a===1?"#4f8a5b" : a===2?"#3f72b0" : "#9aa0a6"; }
+      bx.globalAlpha = visited[s] ? (0.4+0.6*conf(s)) : 1;
+      bx.fillStyle=col; bx.fillRect(x0+b*bw+1, y0, bw-2, rowH);
+      bx.globalAlpha=1;
+    }
+  }
+  bx.fillStyle="#9aa0a6"; bx.font="9px 'JetBrains Mono',monospace"; bx.textAlign="left";
+  bx.fillText("cerca", x0, h-2); bx.textAlign="right"; bx.fillText("lejos →", w-2, h-2); bx.textAlign="left";
+}
+
+// ---------- Gráfico ----------
+const ccv=document.getElementById("chart"), cx=ccv.getContext("2d");
+function drawChart(){
+  const w=ccv.width,h=ccv.height,pad=8; cx.clearRect(0,0,w,h);
+  if(history.length<2) return;
+  const data=history.slice(-170), maxV=Math.max(10,...data);
+  const sx=(w-pad*2)/(data.length-1), sy=(h-pad*2)/maxV;
+  cx.strokeStyle="#c8cbcf"; cx.lineWidth=1; cx.beginPath();
+  data.forEach((v,i)=>{const X=pad+i*sx,Y=h-pad-v*sy;i?cx.lineTo(X,Y):cx.moveTo(X,Y);}); cx.stroke();
+  const win=10, ma=[];
+  for(let i=0;i<data.length;i++){const a=Math.max(0,i-win+1);let s=0;for(let j=a;j<=i;j++)s+=data[j];ma.push(s/(i-a+1));}
+  cx.strokeStyle="#4f8a5b"; cx.lineWidth=2; cx.beginPath();
+  ma.forEach((v,i)=>{const X=pad+i*sx,Y=h-pad-v*sy;i?cx.lineTo(X,Y):cx.moveTo(X,Y);}); cx.stroke();
+}
+
+function updateHUD(){
+  document.getElementById("hEp").textContent=episode;
+  document.getElementById("hScore").textContent=score;
+  document.getElementById("hBest").textContent=best;
+  document.getElementById("hEps").textContent=EPS.toFixed(2);
+  document.getElementById("hStates").textContent=visited.filter(Boolean).length;
+}
+
+function loop(){
+  if(running){ for(let i=0;i<simSpeed;i++) simStep(); }
+  draw(); drawBrain(); drawChart(); updateHUD();
+  requestAnimationFrame(loop);
+}
+
+// ---------- Controles ----------
+const btnRun=document.getElementById("btnRun");
+btnRun.addEventListener("click",()=>{ running=!running; btnRun.textContent=running?"⏸ Pausar":"▶ Entrenar"; });
+document.getElementById("btnReset").addEventListener("click",()=>{
+  Q=makeQ(); visited.fill(false); episode=0; best=0; history.length=0; EPS=0.60;
+  endEpisode(); episode=0; });
+document.querySelectorAll(".spd").forEach(b=>{
+  b.addEventListener("click",()=>{ document.querySelectorAll(".spd").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); simSpeed=parseInt(b.dataset.spd,10); });
+});
+
+spawnObstacle(); spawnCloud();
+loop();
+</script>
+</body>
+</html>
